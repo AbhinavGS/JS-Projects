@@ -6,6 +6,17 @@ const account1 = {
   currency: "INR",
   interestRate: 1.2,
   pin: 1111,
+  transactionsDates: [
+    "2021-11-18T21:31:17.178Z",
+    "2021-12-23T07:42:02.383Z",
+    "2022-01-28T09:15:04.904Z",
+    "2022-04-01T10:17:24.185Z",
+    "2022-05-08T14:11:59.604Z",
+    "2022-05-27T17:01:17.194Z",
+    "2021-07-11T23:36:17.929Z",
+    "2021-07-12T10:51:36.790Z",
+  ],
+  locale: "en-IN",
 };
 
 const account2 = {
@@ -14,6 +25,17 @@ const account2 = {
   currency: "USD",
   interestRate: 1.5,
   pin: 2222,
+  transactionsDates: [
+    "2021-11-01T13:15:33.035Z",
+    "2021-11-30T09:48:16.867Z",
+    "2021-12-25T06:04:23.907Z",
+    "2022-01-25T14:18:46.235Z",
+    "2022-02-05T16:33:06.386Z",
+    "2022-04-10T14:43:26.374Z",
+    "2022-06-01T18:49:59.371Z",
+    "2021-07-26T12:01:20.894Z",
+  ],
+  locale: "en-US",
 };
 
 const account3 = {
@@ -22,6 +44,17 @@ const account3 = {
   currency: "EUR",
   interestRate: 0.7,
   pin: 3333,
+  transactionsDates: [
+    "2021-11-18T21:31:17.178Z",
+    "2021-12-23T07:42:02.383Z",
+    "2022-01-28T09:15:04.904Z",
+    "2022-04-01T10:17:24.185Z",
+    "2022-05-08T14:11:59.604Z",
+    "2022-05-27T17:01:17.194Z",
+    "2021-07-11T23:36:17.929Z",
+    "2021-07-12T10:51:36.790Z",
+  ],
+  locale: "de-DE",
 };
 
 const account4 = {
@@ -30,6 +63,17 @@ const account4 = {
   currency: "GBP",
   interestRate: 1,
   pin: 4444,
+  transactionsDates: [
+    "2021-11-01T13:15:33.035Z",
+    "2021-11-30T09:48:16.867Z",
+    "2021-12-25T06:04:23.907Z",
+    "2022-01-25T14:18:46.235Z",
+    "2022-02-05T16:33:06.386Z",
+    "2022-04-10T14:43:26.374Z",
+    "2022-06-01T18:49:59.371Z",
+    "2021-07-26T12:01:20.894Z",
+  ],
+  locale: "en-GB",
 };
 
 const accounts = [account1, account2, account3, account4];
@@ -68,22 +112,51 @@ const currenciesMap = new Map([
 
 const transactions = [200, 450, -400, 3000, -650, -130, 70, 1300];
 
+// Function to format transaction dates
+const formatTransactionDate = (date, locale) => {
+  const calcDaysPassed = (date1, date2) =>
+    Math.round(Math.abs(date2 - date1) / (1000 * 60 * 60 * 24));
+
+  const daysPassed = calcDaysPassed(new Date(), date);
+
+  if (daysPassed === 0) return "Today";
+  if (daysPassed === 1) return "Yesterday";
+  if (daysPassed <= 7) return `${daysPassed} days ago`;
+
+  return new Intl.DateTimeFormat(locale).format(date);
+};
+
+// Funtion to format currency
+const formatCur = function (value, locale, currency) {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency,
+  }).format(value);
+};
+
 // Function to display transations
-const displayTransactions = (transactions, sort = false) => {
+const displayTransactions = (account, sort = false) => {
   containerTransactions.innerHTML = "";
 
   const trans = sort
-    ? transactions.slice().sort((a, b) => a - b)
-    : transactions;
+    ? account.transactions.slice().sort((a, b) => a - b)
+    : account.transactions;
 
   trans.forEach((trans, i) => {
     const type = trans > 0 ? "deposit" : "withdrawal";
+
+    const date = new Date(account.transactionsDates[i]);
+    const displayDate = formatTransactionDate(date, account.locale);
+
+    const formattedTrans = formatCur(trans, account.locale, account.currency);
+
     const element = `
     <div class="transactions__row">
-      <div class="transactions__type transactions__type--${type}">
-      ${i + 1} deposit
-      </div>
-      <div class="transactions__value">${trans}</div>
+      <div class="transactions__type transactions__type--${type}">${
+      i + 1
+    } ${type}</div>
+      <div class="transactions__date">${displayDate}</div>
+      <div class="transactions__value">${formattedTrans}</div>
     </div>
     `;
     containerTransactions.insertAdjacentHTML("afterbegin", element);
@@ -91,32 +164,36 @@ const displayTransactions = (transactions, sort = false) => {
 };
 
 // Functions to display current balalnce
-const calcDisplayBalance = (account, currencies) => {
+const calcDisplayBalance = (account) => {
   account.balance = account.transactions.reduce(
     (total, trans) => total + trans,
     0
   );
 
-  labelBalance.textContent = `${account.balance} ${currencies.get(
+  labelBalance.textContent = formatCur(
+    account.balance,
+    account.locale,
     account.currency
-  )}`;
+  );
 };
 
 // Function to display summary
-const calcDisplaySummary = (account, currencies) => {
+const calcDisplaySummary = (account) => {
   const transIn = account.transactions
     .filter((num) => num > 0)
     .reduce((total, trans) => total + trans, 0);
 
-  labelSumIn.textContent = `${transIn} ${currencies.get(account.currency)}`;
+  labelSumIn.textContent = formatCur(transIn, account.locale, account.currency);
 
   const transOut = account.transactions
     .filter((num) => num < 0)
     .reduce((total, trans) => total + trans, 0);
 
-  labelSumOut.textContent = `${Math.abs(transOut)} ${currencies.get(
+  labelSumOut.textContent = formatCur(
+    Math.abs(transOut),
+    account.locale,
     account.currency
-  )}`;
+  );
 
   const interest = account.transactions
     .filter((trans) => trans > 0)
@@ -124,9 +201,11 @@ const calcDisplaySummary = (account, currencies) => {
     .filter((int) => int > 1) //ignoring interest less than 1
     .reduce((total, int) => (total += int), 0);
 
-  labelSumInterest.textContent = `${interest} ${currencies.get(
+  labelSumInterest.textContent = formatCur(
+    interest,
+    account.locale,
     account.currency
-  )}`;
+  );
 };
 
 // Funtion to create usernames
@@ -141,13 +220,37 @@ const createUsernames = (accounts) => {
 createUsernames(accounts);
 
 // FUnction to update User Interface
-const updateUI = (account, currencies = currenciesMap) => {
-  displayTransactions(account.transactions);
-  calcDisplayBalance(account, currencies);
-  calcDisplaySummary(account, currencies);
+const updateUI = (account) => {
+  displayTransactions(account);
+  calcDisplayBalance(account);
+  calcDisplaySummary(account);
 };
 
-let currentAccount;
+// Function for logOut timer functionality
+const startLogOutTimer = () => {
+  let time = 120;
+  const tick = () => {
+    const min = String(Math.trunc(time / 60)).padStart(2, 0);
+    const sec = String(time % 60).padStart(2, 0);
+
+    // In each call, print the remaining time to UI
+    labelTimer.textContent = `${min}:${sec}`;
+
+    // When 0 seconds, stop timer and log out user
+    if (time === 0) {
+      clearInterval(timer);
+      labelWelcome.textContent = "Log in to get started";
+      containerApp.style.opacity = 0;
+    }
+    time--;
+  };
+
+  tick();
+  const timer = setInterval(tick, 1000);
+  return timer;
+};
+
+let currentAccount, timer;
 // Impliment login functionality
 btnLogin.addEventListener("click", (e) => {
   e.preventDefault();
@@ -161,9 +264,26 @@ btnLogin.addEventListener("click", (e) => {
     }`;
     containerApp.style.opacity = 100;
 
+    const now = new Date();
+    const options = {
+      hour: "numeric",
+      minute: "numeric",
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+    };
+
+    labelDate.textContent = new Intl.DateTimeFormat(
+      currentAccount.locale,
+      options
+    ).format(now);
+
     // Clear input fields
     inputLoginUsername.value = inputLoginPin.value = "";
     inputLoginPin.blur(); // Remove pointer from field
+
+    if (timer) clearInterval(timer);
+    timer = startLogOutTimer();
 
     // Update UI
     updateUI(currentAccount);
@@ -187,8 +307,16 @@ btnTransfer.addEventListener("click", (e) => {
     currentAccount.transactions.push(-amount);
     receiverAcc.transactions.push(amount);
 
+    // Add transfer date
+    currentAccount.transactionsDates.push(new Date().toISOString());
+    receiverAcc.transactionsDates.push(new Date().toISOString());
+
     // Update UI
     updateUI(currentAccount);
+
+    // reset the timer
+    clearInterval(timer);
+    timer = startLogOutTimer();
   }
   // reset the fields
   inputTransferTo.value = "";
@@ -205,11 +333,20 @@ btnLoan.addEventListener("click", (e) => {
     amount > 0 &&
     currentAccount.transactions.some((trans) => trans >= amount * 0.1)
   ) {
-    // Add movement
-    currentAccount.transactions.push(amount);
+    setTimeout(() => {
+      // Add movement
+      currentAccount.transactions.push(amount);
 
-    // Update UI
-    updateUI(currentAccount);
+      // Add loan date
+      currentAccount.transactionsDates.push(new Date().toISOString());
+
+      // Update UI
+      updateUI(currentAccount);
+
+      // Reset timer
+      clearInterval(timer);
+      timer = startLogOutTimer();
+    }, 2500);
   }
   inputLoanAmount.value = "";
 });
@@ -239,6 +376,6 @@ btnClose.addEventListener("click", (e) => {
 let sorted = false;
 btnSort.addEventListener("click", (e) => {
   e.preventDefault();
-  displayTransactions(currentAccount.transactions, !sorted);
+  displayTransactions(currentAccount, !sorted);
   sorted = !sorted;
 });
